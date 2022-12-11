@@ -1,26 +1,27 @@
+import { xlink_attr } from "svelte/internal";
+import { GraphEntity, type IRenderable } from "./entity";
+import { drawRect } from "./helpers";
 import { InputController } from "./input";
 import { Transform } from "./transform";
 import { Viewport } from "./viewport";
 
-export class Camera {
-  public transform: Transform;
+export class Camera extends GraphEntity implements IRenderable {
   public zoom = 1;
 
   public constructor() {
+    super();
     this.transform = Transform.default();
   }
 
-  tick() {
-    const ic = InputController.getController();
-    if (ic.isZooming()) {
-      this.zoom += ic.scrollDelta * 0.0001;
-      // if (this.zoom < 1) {
-      //   this.zoom = 1;
-      // } else if (this.zoom > 20) {
-      //   this.zoom = 20;
-      // } else {
-      //   this.zoom = this.zoom;
-      // }
-    }
+  tick() {}
+
+  render(ctx: CanvasRenderingContext2D) {
+    drawRect(ctx, {
+      width: 5,
+      height: 5,
+      x: this.transform.position.x,
+      y: this.transform.position.y,
+      fillColor: "red",
+    });
   }
 }

@@ -1,12 +1,9 @@
 import { GraphEntity, type IRenderable } from "./entity";
 import { drawCircle, drawRect, drawText, randomNumber } from "./helpers";
-import { InputController } from "./input";
-import { Vector2 } from "./vector2d";
-import { Viewport } from "./viewport";
-import { GraphWorld } from "./world";
+import { Vector2 } from "./math/vector2d";
+import type { GraphWorld } from "./world";
 
 // Just some random connection types to test input / output matching.
-
 const ConnectionTypes = ["string", "number", "bool"] as const;
 type ConnectionType = typeof ConnectionTypes[number];
 
@@ -49,10 +46,11 @@ export class GraphNode extends GraphEntity implements IRenderable {
   zIndex = 0;
   isColliding = false;
 
-  constructor(position?: Vector2) {
+  constructor(private world: GraphWorld, position?: Vector2) {
     super(position);
+
     this.id = crypto.randomUUID();
-    this.zIndex = GraphWorld.getWorld().nodes?.length;
+    this.zIndex = world.nodes?.length;
     this.inputs = new Array(randomNumber(1, 5)).fill(0).map((i) => ({
       type: ConnectionTypes[randomNumber(0, ConnectionTypes.length)],
       connections: [],
@@ -61,8 +59,6 @@ export class GraphNode extends GraphEntity implements IRenderable {
       type: ConnectionTypes[randomNumber(0, ConnectionTypes.length)],
       connections: [],
     }));
-    // this.inputs = [{ type: "🍎" }, { type: "🍊" }];
-    // this.outputs = [{ type: "🍌" }, { type: "🍎" }];
   }
 
   isIntersecting(node: GraphNode) {
@@ -91,10 +87,10 @@ export class GraphNode extends GraphEntity implements IRenderable {
   }
 
   tick() {
-    const ic = InputController.getController();
+    const ic = this.world.getGraph().getInputController();
     const mousePos = ic.getMousePosition();
 
-    const nodes = GraphWorld.getWorld().nodes;
+    const nodes = this.world.nodes;
 
     // this.isColliding = nodes.some(
     //   (n) => n.id !== this.id && this.isIntersecting(n)
@@ -130,7 +126,7 @@ export class GraphNode extends GraphEntity implements IRenderable {
     // ctx.lineCap = "round";
     ctx.beginPath();
 
-    const nodes = GraphWorld.getWorld().nodes;
+    const nodes = this.world.nodes;
     const nextNode = nodes[nodes.findIndex((n) => n.id === this.id) + 1];
 
     if (nextNode) {

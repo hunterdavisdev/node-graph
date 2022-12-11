@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Vector2 } from "./lib/vector2d";
+  import { Vector2 } from "./lib/math/vector2d";
   import CheckboxGroup from "./components/Inputs/CheckboxGroup.svelte";
   import { bind } from "svelte/internal";
 

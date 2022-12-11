@@ -1,5 +1,6 @@
 import { Transform } from "./transform";
-import type { Vector2 } from "./vector2d";
+import type { Vector2 } from "./math/vector2d";
+import type { NodeGraph } from "./graph";
 
 export interface IRenderable {
   render: (ctx: CanvasRenderingContext2D) => any;

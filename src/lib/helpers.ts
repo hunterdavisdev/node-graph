@@ -1,4 +1,5 @@
-import { Vector2 } from "./vector2d";
+import { claim_text } from "svelte/internal";
+import { Vector2 } from "./math/vector2d";
 
 type RenderCtx = CanvasRenderingContext2D;
 
@@ -7,6 +8,7 @@ type CommonRenderingOptions = {
   y: number;
   fillColor?: string;
   strokeColor?: string;
+  font?: string;
 };
 
 function memFill(
@@ -38,6 +40,9 @@ export function drawText(
   text: string,
   options: CommonRenderingOptions & { maxWidth?: number }
 ) {
+  const lastFont = ctx.font;
+  ctx.font = options.font || lastFont;
+
   if (options.fillColor) {
     memFill(ctx, options.fillColor, (ctx) =>
       ctx.fillText(text, options.x, options.y, options?.maxWidth)
@@ -49,6 +54,8 @@ export function drawText(
       ctx.strokeText(text, options.x, options.y, options?.maxWidth)
     );
   }
+
+  ctx.font = lastFont;
 }
 
 export function drawCircle(
@@ -75,4 +82,24 @@ export function drawRect(
 
 export function randomNumber(min = 0, max = 1) {
   return Math.floor(Math.random() * (max - min) + min);
+}
+
+export function drawDebugText(
+  ctx: RenderCtx,
+  text: string,
+  options?: CommonRenderingOptions & {
+    // backgroundColor?: string;
+    padding?: number;
+    lineHeight?: number;
+  }
+) {
+  const substrings = text.split("\n");
+  substrings.forEach((s, i) => {
+    // const {} = ctx.measureText(s)
+    drawText(ctx, s, {
+      ...options,
+      x: options.padding + options.x,
+      y: options.padding + (options.y + (i + 1) * (options.lineHeight ?? 16)),
+    });
+  });
 }

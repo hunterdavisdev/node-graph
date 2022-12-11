@@ -1,41 +1,46 @@
-import { Vector2 } from "./vector2d";
-import type { GraphConfig } from "./viewport";
+import { Vector2 } from "./math/vector2d";
+import type { GraphConfig, NodeGraph } from "./graph";
 
 export class InputController {
-  private canvas: HTMLCanvasElement;
   private mousePosition: Vector2;
   private _isMouseDown: boolean;
   private _isZooming: boolean;
   private isShortcutting: boolean;
   public scrollDelta: number;
-
   static _inputController: InputController;
 
-  static getController() {
-    if (!this._inputController) {
-      this._inputController = new InputController();
-    }
-    return this._inputController;
-  }
+  // Camera panning stuff
+  private isPanningInputDown = false;
+  private lastFrameMousePosition: Vector2;
+  private mouseDelta: number;
+  private mouseVelocity: number;
 
-  setCanvas(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-  }
+  constructor(private graph: NodeGraph) {}
 
-  initializeListeners(config?: GraphConfig) {
+  initializeListeners() {
+    const canvas = this.graph.getViewport().getCanvas();
+    const config = this.graph.getConfig();
+
     if (config?.onContextMenuRequested) {
-      this.canvas.addEventListener("contextmenu", (e) => {
+      canvas.addEventListener("contextmenu", (e) => {
         e.preventDefault();
         config?.onContextMenuRequested(e);
       });
     }
 
-    this.canvas.addEventListener("mousemove", (e) => {
-      this.setMousePosition(e, this.canvas);
+    canvas.addEventListener("mousemove", (e) => {
+      this.setMousePosition(e, canvas);
     });
 
-    this.canvas.addEventListener("mousedown", () => {
+    canvas.addEventListener("mousedown", (e) => {
+      if (e.button === 1) {
+        this.isPanningInputDown = true;
+      }
       this.setIsMouseDown(true);
+    });
+
+    canvas.addEventListener("mouseup", (e) => {
+      this.setIsMouseDown(false);
     });
 
     document.addEventListener("keydown", (e) => {
@@ -64,7 +69,21 @@ export class InputController {
     );
   }
 
-  constructor() {}
+  tick() {
+    if (!this.lastFrameMousePosition) {
+      this.lastFrameMousePosition = this.getMousePosition();
+    }
+
+    const mousePosition = this.getMousePosition();
+
+    if (mousePosition) {
+      this.mouseDelta = this.getMousePosition().distanceTo(
+        this.lastFrameMousePosition
+      );
+
+      this.lastFrameMousePosition = mousePosition;
+    }
+  }
 
   setMousePosition(event: MouseEvent, canvas: HTMLCanvasElement) {
     const canvasBounds = canvas.getBoundingClientRect();
@@ -79,6 +98,10 @@ export class InputController {
 
   getMousePosition() {
     return this.mousePosition;
+  }
+
+  getMouseDelta() {
+    return this.mouseDelta;
   }
 
   setIsMouseDown(flag: boolean) {

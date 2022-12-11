@@ -1,19 +1,18 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import Menu from "./components/Menu.svelte";
-  import { Viewport } from "./lib/viewport";
   import { GraphWorld } from "./lib/world";
+  import { NodeGraph } from "./lib/graph";
 
   let menuOpen = false;
   let menuX = 0;
   let menuY = 0;
 
+  let graph: NodeGraph;
   let canvas: HTMLCanvasElement;
-  let world = GraphWorld.getWorld();
-  let viewport: Viewport;
 
   onMount(() => {
-    viewport = new Viewport(canvas, {
+    graph = new NodeGraph(canvas, {
       onContextMenuRequested: (e) => {
         menuX = e.clientX;
         menuY = e.clientY;
@@ -21,7 +20,9 @@
         console.log({ open });
       },
     });
-    viewport.render();
+
+    graph.init();
+    graph.update();
   });
 </script>
 
@@ -31,11 +32,11 @@
     bind:x={menuX}
     bind:y={menuY}
     onAddNode={() => {
-      GraphWorld.getWorld().addNodeAtMousePosition();
+      graph.getWorld().addNodeAtMousePosition();
       menuOpen = false;
     }}
     onResetGraph={() => {
-      world.nodes = [];
+      graph.getWorld().nodes = [];
       menuOpen = false;
     }}
   />
