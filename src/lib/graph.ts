@@ -15,15 +15,15 @@ export class NodeGraph {
   private chrono: Chrono;
 
   constructor(canvas: HTMLCanvasElement, private config: GraphConfig) {
-    this.world = new GraphWorld(this);
     this.viewport = new Viewport(this, canvas);
     this.chrono = new Chrono(this);
     this.inputController = new InputController(this);
+    this.world = new GraphWorld(this);
   }
 
   init() {
     this.inputController.initializeListeners();
-    // this.world.seedNodes(300);
+    this.world.seedNodes(10);
   }
 
   // Only need to call this once.

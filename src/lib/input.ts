@@ -12,10 +12,17 @@ export class InputController {
   // Camera panning stuff
   private isPanningInputDown = false;
   private lastFrameMousePosition: Vector2;
-  private mouseDelta: number;
+  private panStartPosition: Vector2;
+  private panEndPosition: Vector2;
+  private mouseDelta: Vector2;
   private mouseVelocity: number;
 
-  constructor(private graph: NodeGraph) {}
+  constructor(private graph: NodeGraph) {
+    this._isMouseDown = false;
+    this.scrollDelta = 0;
+    this.mouseDelta = new Vector2(0, 0);
+    this.mousePosition = Vector2.zero();
+  }
 
   initializeListeners() {
     const canvas = this.graph.getViewport().getCanvas();
@@ -34,12 +41,17 @@ export class InputController {
 
     canvas.addEventListener("mousedown", (e) => {
       if (e.button === 1) {
+        this.panStartPosition = this.getMousePosition();
         this.isPanningInputDown = true;
       }
       this.setIsMouseDown(true);
     });
 
     canvas.addEventListener("mouseup", (e) => {
+      if (e.button === 1) {
+        this.panEndPosition = this.getMousePosition();
+        this.isPanningInputDown = false;
+      }
       this.setIsMouseDown(false);
     });
 
@@ -62,8 +74,9 @@ export class InputController {
         if (this.isShortcutting) {
           e.preventDefault();
         }
-        this.scrollDelta = e.deltaY;
-        this._isZooming = this.isShortcutting;
+        if (this.isShortcutting) {
+          this.scrollDelta = e.deltaY;
+        }
       },
       { passive: false }
     );
@@ -77,9 +90,8 @@ export class InputController {
     const mousePosition = this.getMousePosition();
 
     if (mousePosition) {
-      this.mouseDelta = this.getMousePosition().distanceTo(
-        this.lastFrameMousePosition
-      );
+      this.mouseDelta.x = mousePosition.x - this.lastFrameMousePosition.x;
+      this.mouseDelta.y = mousePosition.y - this.lastFrameMousePosition.y;
 
       this.lastFrameMousePosition = mousePosition;
     }
@@ -114,5 +126,17 @@ export class InputController {
 
   isZooming() {
     return this._isZooming;
+  }
+
+  isPanning() {
+    return this.isPanningInputDown;
+  }
+
+  getStartPanPosition() {
+    return this.panStartPosition;
+  }
+
+  getEndPanPosition() {
+    return this.panEndPosition;
   }
 }

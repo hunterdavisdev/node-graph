@@ -1,10 +1,6 @@
 import { Camera } from "./camera";
-import { GraphNode } from "./gnode";
-import type { GraphConfig, NodeGraph } from "./graph";
-import { drawDebugText } from "./helpers";
-import { InputController } from "./input";
-import { Vector2 } from "./math/vector2d";
-import { GraphWorld } from "./world";
+import type { NodeGraph } from "./graph";
+import { drawCircle, drawDebugText } from "./helpers";
 
 export class Viewport {
   private graph: NodeGraph;
@@ -15,6 +11,7 @@ export class Viewport {
     this.graph = graph;
     this.canvas = canvas;
     this.ctx = this.getContext();
+    // this.ctx.scale(0.5, 0.5);
   }
   getCanvas() {
     return this.canvas;
@@ -36,18 +33,25 @@ export class Viewport {
   }
 
   drawGrid() {
+    const camera = this.graph.getWorld().getCamera();
     const ctx = this.getContext();
-    const gridGap = 30;
+    const gridGap = 40;
     const columns = this.canvas.width / gridGap;
     const rows = this.canvas.height / gridGap;
 
     ctx.fillStyle = "#222222";
     for (let r = 1; r < rows; r++) {
       for (let c = 1; c < columns; c++) {
-        ctx.beginPath();
-        ctx.arc(c * gridGap, r * gridGap, 2, 0, Math.PI * 180, false);
-        ctx.fill();
-        ctx.closePath();
+        // ctx.beginPath();
+        // ctx.arc(c * gridGap, r * gridGap, 2, 0, Math.PI * 180, false);
+        // ctx.fill();
+        // ctx.closePath();
+        drawCircle(ctx, {
+          x: c * gridGap,
+          y: r * gridGap,
+          radius: 2,
+          fillColor: "#222222",
+        });
       }
     }
   }
@@ -69,10 +73,22 @@ export class Viewport {
 
     this.graph.getWorld().render(this.ctx);
 
+    // if (ic.isPanning()) {
+    //   const start = ic.getStartPanPosition();
+    //   const end = ic.getMousePosition();
+
+    //   this.ctx.strokeStyle = "white";
+    //   this.ctx.beginPath();
+    //   this.ctx.moveTo(start.x, start.y);
+    //   this.ctx.lineTo(end.x, end.y);
+    //   this.ctx.stroke();
+    //   this.ctx.closePath();
+    // }
+
     const debugStrings = [
       `Mouse Position: ${ic.getMousePosition()?.toString()}`,
       `Mouse Down: ${ic.isMouseDown()}`,
-      `Mouse Delta: ${ic.getMouseDelta()?.toFixed(2)}`,
+      `Mouse Delta: ${ic.getMouseDelta()?.toString()}`,
       `Zooming?: ${ic.isZooming()} ${(ic.scrollDelta * 0.01).toFixed(2)}`,
       `FPS: ${this.graph.getChrono().getFPS().toFixed(4)}`,
     ];

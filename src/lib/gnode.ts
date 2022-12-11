@@ -1,3 +1,4 @@
+import { Camera } from "./camera";
 import { GraphEntity, type IRenderable } from "./entity";
 import { drawCircle, drawRect, drawText, randomNumber } from "./helpers";
 import { Vector2 } from "./math/vector2d";
@@ -45,6 +46,7 @@ export class GraphNode extends GraphEntity implements IRenderable {
   isDragging = false;
   zIndex = 0;
   isColliding = false;
+  isVisible = false;
 
   constructor(private world: GraphWorld, position?: Vector2) {
     super(position);
@@ -80,15 +82,29 @@ export class GraphNode extends GraphEntity implements IRenderable {
 
   containsPoint(v: Vector2) {
     if (!v) return false;
+
+    const ctx = this.world.getGraph().getViewport().getContext();
+
+    const camera = this.world.getCamera();
     const pos = this.transform.position;
+
+    // drawRect(ctx, {
+    //   x: this.transform.position.x,
+    //   y: this.transform.position.y,
+    //   width: 5,
+    //   height: 5,
+    //   fillColor: "red",
+    // });
     const w = this.width;
     const h = this.height;
     return v.x >= pos.x && v.x <= pos.x + w && v.y >= pos.y && v.y <= pos.y + h;
   }
 
   tick() {
+    const camera = this.world.getCamera();
     const ic = this.world.getGraph().getInputController();
     const mousePos = ic.getMousePosition();
+    const worldMousePos = camera.screenToWorld(mousePos);
 
     const nodes = this.world.nodes;
 
@@ -97,7 +113,8 @@ export class GraphNode extends GraphEntity implements IRenderable {
     // );
 
     // Check to see if we're currently hovering 'this' node
-    this.isHoverCandidate = this.containsPoint(mousePos);
+
+    this.isHoverCandidate = this.containsPoint(worldMousePos);
 
     // Find all other hovered nodes
     const competingNodes = nodes
@@ -113,14 +130,16 @@ export class GraphNode extends GraphEntity implements IRenderable {
     this.isDragging = ic.isMouseDown() && this.isHovering;
 
     if (this.isDragging) {
-      this.transform.position.x = mousePos.x - this.width / 2;
-      this.transform.position.y = mousePos.y - this.height / 2;
+      this.transform.position.x = worldMousePos.x - this.width / 2;
+      this.transform.position.y = worldMousePos.y - this.height / 2;
     }
   }
 
   private drawConnections(ctx: CanvasRenderingContext2D) {
+    const camera = this.world.getCamera();
+
     ctx.strokeStyle = "gray";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2 * camera.zoom;
     // ctx.setLineDash([8, 8]);
     // ctx.lineDashOffset = 4;
     // ctx.lineCap = "round";
@@ -131,8 +150,8 @@ export class GraphNode extends GraphEntity implements IRenderable {
 
     if (nextNode) {
       this.outputs.forEach((output, i) => {
-        const lineOrigin = this.getOutputPosition(i);
-        const lineTerminal = nextNode.getInputPosition(i);
+        const lineOrigin = camera.worldToScreen(this.getOutputPosition(i));
+        const lineTerminal = camera.worldToScreen(nextNode.getInputPosition(i));
 
         const cp1 = lineOrigin.lerp(lineTerminal, 0.5);
         const distance = lineOrigin.distanceTo(lineTerminal);
@@ -180,9 +199,11 @@ export class GraphNode extends GraphEntity implements IRenderable {
   }
 
   drawInputs(ctx: CanvasRenderingContext2D) {
+    const camera = this.world.getCamera();
+
     this.inputs.forEach((_, i) => {
-      const inputPosition = this.getInputPosition(i);
-      const size = GraphNode.styles.inputRadius;
+      const inputPosition = camera.worldToScreen(this.getInputPosition(i));
+      const size = GraphNode.styles.inputRadius * camera.zoom;
 
       drawRect(ctx, {
         x: inputPosition.x - size / 2,
@@ -196,12 +217,14 @@ export class GraphNode extends GraphEntity implements IRenderable {
   }
 
   drawOutputs(ctx: CanvasRenderingContext2D) {
+    const camera = this.world.getCamera();
+
     this.outputs.forEach((_, i) => {
-      const inputPosition = this.getOutputPosition(i);
+      const inputPosition = camera.worldToScreen(this.getOutputPosition(i));
       drawCircle(ctx, {
         x: inputPosition.x,
         y: inputPosition.y,
-        radius: GraphNode.styles.inputRadius / 2,
+        radius: (GraphNode.styles.inputRadius / 2) * camera.zoom,
         fillColor: GraphNode.styles.nodeBgColor,
         strokeColor: "white",
       });
@@ -209,9 +232,12 @@ export class GraphNode extends GraphEntity implements IRenderable {
   }
 
   drawNodeContent(ctx: CanvasRenderingContext2D) {
+    const camera = this.world.getCamera();
+
     // Draw input type strings next to the connectors
     this.inputs.forEach((input, i) => {
-      const inputPosition = this.getInputPosition(i);
+      const inputPosition = camera.worldToScreen(this.getInputPosition(i));
+
       const { actualBoundingBoxAscent } = ctx.measureText(input.type);
       drawText(ctx, input.type, {
         fillColor: "white",
@@ -222,7 +248,7 @@ export class GraphNode extends GraphEntity implements IRenderable {
 
     // Draw output type strings next to the connectors
     this.outputs.forEach((output, i) => {
-      const inputPosition = this.getOutputPosition(i);
+      const inputPosition = camera.worldToScreen(this.getOutputPosition(i));
       const { width, actualBoundingBoxAscent } = ctx.measureText(output.type);
       drawText(ctx, output.type, {
         // fillColor: "white",
@@ -263,9 +289,14 @@ export class GraphNode extends GraphEntity implements IRenderable {
   }
 
   render(ctx: CanvasRenderingContext2D) {
+    const camera = this.world.getCamera();
+    const screenPos = camera.worldToScreen(this.transform.position);
+
     this.drawConnections(ctx);
 
-    ctx.fillStyle = GraphNode.styles.nodeHeaderColor;
+    ctx.fillStyle = this.isVisible
+      ? "yellow"
+      : GraphNode.styles.nodeHeaderColor;
     ctx.strokeStyle = "white";
 
     // const gradient = ctx.createLinearGradient(
@@ -283,23 +314,24 @@ export class GraphNode extends GraphEntity implements IRenderable {
     // ctx.fillStyle = gradient;
 
     ctx.fillRect(
-      this.transform.position.x,
-      this.transform.position.y,
-      this.width,
-      GraphNode.styles.headerHeight
+      screenPos.x,
+      screenPos.y,
+      this.width * camera.zoom,
+      GraphNode.styles.headerHeight * camera.zoom
     );
 
     this.drawInputs(ctx);
     this.drawOutputs(ctx);
+
     ctx.fillStyle = GraphNode.styles.nodeBgColor;
     ctx.strokeStyle = "#444444";
 
     ctx.beginPath();
     ctx.rect(
-      this.transform.position.x,
-      this.transform.position.y + GraphNode.styles.headerHeight,
-      this.width,
-      this.height - GraphNode.styles.headerHeight
+      screenPos.x,
+      screenPos.y + GraphNode.styles.headerHeight * camera.zoom,
+      this.width * camera.zoom,
+      (this.height - GraphNode.styles.headerHeight) * camera.zoom
     );
 
     ctx.fill();
@@ -307,12 +339,12 @@ export class GraphNode extends GraphEntity implements IRenderable {
 
     this.drawNodeContent(ctx);
 
-    ctx.font = `${14}px monospace`;
+    ctx.font = `${14 * camera.zoom}px monospace`;
     ctx.fillStyle = "black";
     ctx.fillText(
       `Node ${this.zIndex + 1}`,
-      this.transform.position.x + GraphNode.styles.horizontalTextPadding,
-      this.transform.position.y + GraphNode.styles.headerHeight / 1.75
+      screenPos.x + GraphNode.styles.horizontalTextPadding * camera.zoom,
+      screenPos.y + (GraphNode.styles.headerHeight / 1.75) * camera.zoom
     );
 
     ctx.fillStyle = "white";

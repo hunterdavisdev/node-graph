@@ -1,14 +1,17 @@
 import { Camera } from "./camera";
 import { GraphNode } from "./gnode";
 import type { NodeGraph } from "./graph";
-import { InputController } from "./input";
 import { Vector2 } from "./math/vector2d";
 
 export class GraphWorld {
   private graph: NodeGraph;
+  public nodes: GraphNode[];
+  private camera: Camera;
 
-  constructor(graph: NodeGraph, public nodes: GraphNode[] = []) {
+  constructor(graph: NodeGraph) {
     this.graph = graph;
+    this.nodes = [];
+    this.camera = new Camera(this);
   }
 
   addNode(node: GraphNode) {
@@ -17,7 +20,7 @@ export class GraphWorld {
 
   addNodeAtMousePosition() {
     const ic = this.graph.getInputController();
-    const pos = ic.getMousePosition();
+    const pos = this.camera.screenToWorld(ic.getMousePosition());
     this.nodes = [
       ...this.nodes,
       new GraphNode(this, new Vector2(pos.x, pos.y)),
@@ -47,14 +50,20 @@ export class GraphWorld {
   }
 
   tick() {
+    this.camera.tick();
     this.nodes.forEach((n) => n.tick());
   }
 
   render(ctx: CanvasRenderingContext2D) {
+    // this.camera.render(ctx);
     this.nodes.forEach((n) => n.render(ctx));
   }
 
   getGraph() {
     return this.graph;
+  }
+
+  getCamera() {
+    return this.camera;
   }
 }
