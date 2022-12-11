@@ -1,48 +1,44 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { Vector2 } from "./lib/vector2d";
-  import CheckboxGroup from "./components/Inputs/CheckboxGroup.svelte";
-  import { bind } from "svelte/internal";
+  import Menu from "./components/Menu.svelte";
   import { Viewport } from "./lib/viewport";
   import { GraphWorld } from "./lib/world";
 
-  let elementOptions = [] as const;
-  let visibleElements = [...elementOptions];
+  let menuOpen = false;
+  let menuX = 0;
+  let menuY = 0;
 
   let canvas: HTMLCanvasElement;
   let world = GraphWorld.getWorld();
   let viewport: Viewport;
-  let isMouseDown = false;
-
-  //////////////
-
-  $: document.body.style.cursor = world.nodes.some((n) => n.isHovering)
-    ? "grab"
-    : "crosshair";
 
   onMount(() => {
-    viewport = new Viewport(canvas);
-    viewport.clear("rgba(0, 0, 0, 0)");
+    viewport = new Viewport(canvas, {
+      onContextMenuRequested: (e) => {
+        menuX = e.clientX;
+        menuY = e.clientY;
+        menuOpen = true;
+        console.log({ open });
+      },
+    });
     viewport.render();
   });
 </script>
 
 <div class="toolbar">
-  <!-- <div class="form-field">
-    <CheckboxGroup
-      name="Element Visibility"
-      options={elementOptions}
-      bind:group={visibleElements}
-    />
-  </div> -->
-
-  <div class="form-field">
-    <button
-      on:click={() => {
-        world.nodes = [];
-      }}>Reset Graph</button
-    >
-  </div>
+  <Menu
+    bind:open={menuOpen}
+    bind:x={menuX}
+    bind:y={menuY}
+    onAddNode={() => {
+      GraphWorld.getWorld().addNodeAtMousePosition();
+      menuOpen = false;
+    }}
+    onResetGraph={() => {
+      world.nodes = [];
+      menuOpen = false;
+    }}
+  />
 </div>
 
 <canvas
@@ -59,11 +55,6 @@
     top: 1;
     width: 300px;
     color: white;
-  }
-  .form-field {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
   }
   canvas {
     width: 100vw;

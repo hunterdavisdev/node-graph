@@ -1,4 +1,5 @@
 import { Vector2 } from "./vector2d";
+import type { GraphConfig } from "./viewport";
 
 export class InputController {
   private canvas: HTMLCanvasElement;
@@ -21,7 +22,14 @@ export class InputController {
     this.canvas = canvas;
   }
 
-  initializeListeners() {
+  initializeListeners(config?: GraphConfig) {
+    if (config?.onContextMenuRequested) {
+      this.canvas.addEventListener("contextmenu", (e) => {
+        e.preventDefault();
+        config?.onContextMenuRequested(e);
+      });
+    }
+
     this.canvas.addEventListener("mousemove", (e) => {
       this.setMousePosition(e, this.canvas);
     });

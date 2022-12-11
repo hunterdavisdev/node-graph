@@ -1,5 +1,7 @@
 import { Camera } from "./camera";
-import type { GraphNode } from "./gnode";
+import { GraphNode } from "./gnode";
+import { InputController } from "./input";
+import { Vector2 } from "./vector2d";
 
 export class GraphWorld {
   static world: GraphWorld;
@@ -18,6 +20,12 @@ export class GraphWorld {
 
   addNode(node: GraphNode) {
     this.nodes = [...this.nodes, node];
+  }
+
+  addNodeAtMousePosition() {
+    const ic = InputController.getController();
+    const pos = ic.getMousePosition();
+    this.nodes = [...this.nodes, new GraphNode(new Vector2(pos.x, pos.y))];
   }
 
   removeNode(id: GraphNode["id"]) {
